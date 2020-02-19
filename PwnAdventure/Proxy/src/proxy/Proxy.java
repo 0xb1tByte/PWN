@@ -1,5 +1,7 @@
 package proxy;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -7,6 +9,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 
 /**
  * @author alaa NEW TODO : 1 - Proxy ==> This class intercepts the traffic
@@ -33,7 +36,7 @@ public class Proxy {
     private OutputStream toGameServer; // Data sent by Proxy to the Game Server (the data that we are forwarding from the Client)
 
     // Creating buffers for client-to-server and server-to-client communication.
-    final byte[] request = new byte[1024];
+    final byte[] request = new byte[500];
     final byte[] reply = new byte[4096];
 
     Proxy(int port) throws IOException, ClassNotFoundException {
@@ -85,8 +88,13 @@ public class Proxy {
                 this.fromGameServer = this.gameServerSocket.getInputStream();
                 this.toGameServer = this.gameServerSocket.getOutputStream();
 
+                
+                 // we are using seperate threads for request (Client side) and reply (Server Side)
+                
+                
+                
                 // 8 - Creating Threads to read Cleint'data and pass them to the Game Server
-                // we are using seperate threads for request (Client side) and reply (Server Side)
+               
                 new Thread() {
 
                     public void run() {
@@ -96,8 +104,14 @@ public class Proxy {
                             // read() : it returns the total number of bytes read into the buffer, 
                                         // or -1 if there is no more data because the end of the stream has been reached.
                             while ((bytes_read = fromClient.read(request)) != -1) {
-                                toGameServer.write(request, 0, bytes_read);
+                                toGameServer.write(request, 0, bytes_read);    
                                 System.out.println("[+] Client is sending " + bytes_read + " Bytes to the Game Server:\n" + printHex(request));
+                                 // FOR DEBUGGING : 
+                                System.out.println("Bytes: ");
+                                printByteArray(request);
+                                System.out.println("Binary: ");   
+                                printByteAsBits(request);   
+                                System.out.println("");                      
                                 toGameServer.flush();
                             }
                         } catch (IOException e) {
@@ -108,7 +122,10 @@ public class Proxy {
                         } catch (IOException e) {
                         }
                     }
-                }.start(); // NOTE : when program calls start() method a new Thread is created and code inside run() method is executed
+                }.start(); 
+
+
+// NOTE : when program calls start() method a new Thread is created and code inside run() method is executed
 
                 // 9 - Reading the Game Server's response , then forward it to the Client 
                 int bytes_read;
@@ -131,6 +148,8 @@ public class Proxy {
                 // if the Game Server close the connection with the Proxy, close the connection with the Client           
                 toClient.close();
             } // end try 
+            
+            
             catch (IOException e) {
                 System.err.println(e);
             } // end catch 
@@ -149,30 +168,25 @@ public class Proxy {
             } // end finally 
         } // end while  
     } // end listen 
+    
+    
+     private static byte[] doubleToByteArray ( float i ) throws IOException {
+     ByteArrayOutputStream bos = new ByteArrayOutputStream();
+     DataOutputStream dos = new DataOutputStream(bos);
+     dos.writeFloat(i);
+     dos.flush();
+     return bos.toByteArray();
+    }
+     
+     private static byte[] hexToByteArray ( String i ) throws IOException {
+     ByteArrayOutputStream bos = new ByteArrayOutputStream();
+     DataOutputStream dos = new DataOutputStream(bos);
+    // dos.
+    // dos.flush();
+     return bos.toByteArray();
+    }
+    
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
-        
-        checkingBytesValues();
-      
-        int portNumber = 3333; // set the port number to the default port for the Game Server (This port is for Authenticating the Player)
-        if (args.length > 0) {
-            try {
-                portNumber = Integer.parseInt(args[0]);
-                 // create a proxy instance 
-                Proxy PWNProxy = new Proxy(portNumber);
-            } catch (NumberFormatException e) {
-                System.err.println("[!] Argument" + args[0] + " must be an integer.");
-                System.exit(1);
-            }
-        } // end if 
-        if (args.length == 0) 
-        {
-         System.out.println("[!] Please enter the port of the Game Server to start the Proxy");
-         System.out.println("[~] Usage: java proxy portNumber");
-        } // end if
-        // create a proxy instance 
-       
-    } // end main
 
     private static String printHex(byte[] bytes) {
 
@@ -184,6 +198,14 @@ public class Proxy {
 
     } // end printHex 
     
+        private static void printByteArray(byte[] bytes) {      
+        for (int i = 0; i < bytes.length; i++) {
+            System.out.println("position is : " + i);
+           System.out.print(bytes[i]+ " ");
+        }
+    } // end printByteArray 
+    
+    /*
      private static void checkingBytesValues()
     {
          // FOR DEBUGGING : 
@@ -193,9 +215,40 @@ public class Proxy {
         for (int i = 0; i < test.length; i++) {
          System.out.println("Byte at position "+ i + " is : "); 
          System.out.println(Integer.toString((test[i] & 0xff) + 0x100, 16).substring(1));
-        }       
-    
-    } // end findLocationPacket
+        }   
+     
+         // FOR DEBUGGING : 
+        // printing X & Y & Z values as integer to check values 
+        /*String x = "2fb254c7";
+        long XlongBits = Long.valueOf(x,16).longValue(); 
+        double XdoubleValue = Double.longBitsToDouble(XlongBits);
+        System.out.println("X = " + XdoubleValue);
+        
+        String y = "13be46c7";
+        long YlongBits = Long.valueOf(y,16).longValue(); 
+        double YdoubleValue = Double.longBitsToDouble(YlongBits);
+        System.out.println("Y = " + YdoubleValue);
+        
+        String z = "004b5c44";
+        long ZlongBits = Long.valueOf(z,16).longValue(); 
+        double ZdoubleValue = Double.longBitsToDouble(ZlongBits);
+        System.out.println("Z = " + ZdoubleValue);
+        
+
+        //double X = -39602.8;
+         double X = -54450.2;
+        double Y = -18288.0;
+        double Z = 2400.28 + 10000;
+        
+        System.out.println("X = ");
+        byte[] output = new byte[4];
+        long lng = Double.doubleToLongBits(X);
+        for(int i = 0; i < 4; i++) { 
+         output[i] = (byte)((lng >> ((7 - i) * 8)) & 0xff);
+         System.out.println(output[i]);
+          System.out.println(Integer.toString((output[i] & 0xff) + 0x100, 16).substring(1));
+        }  
+    } // end findLocationPacket */
      
          /* private static void findLocationPacket (bytes [] locationPacket)
         {
@@ -210,6 +263,13 @@ public class Proxy {
     private static byte [] changePlayerLocation (byte [] locationPacket)
     {
     //locationPacket
+        ByteBuffer buffer = ByteBuffer.allocate(locationPacket.length);
+        float X = (float)-54450.2;
+        byte xByte = (byte)X;
+        System.out.println(xByte);
+        double Y = -18288.0;
+        double Z = 2400.28 + 10000;
+        //buffer.put(2, b);
         byte [] newPostions = null;
         
         for (int i = 0 ; i < locationPacket.length ; i++) 
@@ -258,17 +318,62 @@ public class Proxy {
         } // end for 
         
         return newPostions;
-    } // end changeLocation
+    } // end changePlayerLocation
+    
+    private static void printByteAsBits (byte [] byteArray)
+    {
+    for (int i=0;i<byteArray.length;i++)   
+    {
+        System.out.println(Integer.toBinaryString((byteArray[i] & 0xFF) + 256).substring(1) + " ");
+    } // end for
+    }  // printByteAsBits  
     
     
-    private static byte[] hexToByteArray(String s) {
+    
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
+        
+//      checkingBytesValues();
+       // FOR DEBUGGING : 
+       float X = (float)-55680.7;
+       byte [] xByte = doubleToByteArray(X);
+       int bits = Float.floatToIntBits(X);
+        System.out.println(X);
+        System.out.println("Bits are " +bits);
+        System.out.println(xByte.length);
+        for (int i = 0; i < xByte.length;i++) 
+        {
+           System.out.println(xByte[i]);
+        } // end for 
+        int portNumber = 3333; // set the port number to the default port for the Game Server (This port is for Authenticating the Player)
+        if (args.length > 0) {
+            try {
+                portNumber = Integer.parseInt(args[0]);
+                 // create a proxy instance 
+                Proxy PWNProxy = new Proxy(portNumber);
+            } catch (NumberFormatException e) {
+                System.err.println("[!] Argument" + args[0] + " must be an integer.");
+                System.exit(1);
+            }
+        } // end if 
+        if (args.length == 0) 
+        {
+         System.out.println("[!] Please enter the port of the Game Server to start the Proxy");
+         System.out.println("[~] Usage: java proxy portNumber");
+        } // end if
+        // create a proxy instance    
+    } // end main
+    
+    
+   /* private static byte[] hexToByteArray(String s) 
+    {
     int len = s.length();
     byte[] data = new byte[len / 2];
     for (int i = 0; i < len; i += 2) {
         data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
                              + Character.digit(s.charAt(i+1), 16));
-    }
-    return data;
-}
+    }  
+} return data; */
+    
+    
     
 } // end Proxy class 
