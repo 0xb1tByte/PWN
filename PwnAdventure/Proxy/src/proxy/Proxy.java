@@ -41,7 +41,8 @@ public class Proxy {
     
     // Location Packet Variables 
    private boolean locationPacket = false;
-    private boolean  isItMsgPacket = false;
+   private boolean  isItMsgPacket = false;
+   private boolean  isItMANAPacket = false;
 
     Proxy(int port) throws IOException, ClassNotFoundException {
         // 1 - Create a proxy socket and bind it to a specific port number
@@ -110,7 +111,7 @@ public class Proxy {
                             while ((bytes_read = fromClient.read(request)) != -1) {
                                
                                 
-
+                                   /*
                                  // NOT WORKING 
                                 // Before sending the packet to the Game Server
                                 // check if the packet is Location Packet, if so, call the to change Player's Location
@@ -120,9 +121,20 @@ public class Proxy {
                                     System.out.println("True");
                                   //  System.arraycopy(source_arr, sourcePos, dest_arr, destPos, len); 
                                   System.arraycopy(changePlayerLocation(request), 0, request, 0, request.length); 
-                                } // end if 
+                                } // end if  
+                                */
                                 
                                 
+                                                                 // NOT WORKING 
+                                // Before sending the packet to the Game Server
+                                // check if the packet is Location Packet, if so, call the to change Player's Location
+                                isItMANAPacket = isItMANAPacket_(request);
+                                if (isItMANAPacket == true)
+                                {
+                                    System.out.println("True");
+                                  //  System.arraycopy(source_arr, sourcePos, dest_arr, destPos, len); 
+                                  System.arraycopy(changeMANA(request), 0, request, 0, request.length); 
+                                } // end if  
                                 
                                 
                                 // reversing message
@@ -338,6 +350,27 @@ public class Proxy {
     } //  isItLocationPacket()
     
     
+        private static boolean isItMANAPacket_ (byte [] request)         
+    {
+        byte p1 = (byte) (Integer.parseInt("6d",16) & 0xff);
+        byte p2 = (byte) (Integer.parseInt("61",16) & 0xff);
+        boolean condition = false;
+        if ( (request[0] == p1) && (request[1] == p2 ) )
+        {
+        condition = true;
+        } // end if     
+        return condition;
+    } //  isItLocationPacket()
+        
+    
+    private static byte [] changeMANA (byte [] locationPacket)
+    {
+    
+     byte [] newMANA = locationPacket.clone();
+     newMANA[2] = (byte)35; 
+     return newMANA;
+     
+    } // end hangeMANA
     
     private static byte [] changePlayerLocation (byte [] locationPacket) throws IOException
     {
