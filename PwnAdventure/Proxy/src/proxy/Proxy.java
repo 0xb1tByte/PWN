@@ -206,7 +206,7 @@ public class Proxy {
             condition = true;
         } // end if     
         return condition;
-    } //  isItLocationPacket()
+    } //  isItMsgPacket
 
     private static boolean isItLocationPacket(byte[] request) {
         boolean condition = false;
@@ -214,7 +214,7 @@ public class Proxy {
             condition = true;
         } // end if     
         return condition;
-    } //  isItLocationPacket()
+    } //  isItLocationPacket
 
     private static boolean isItJMPPacket(byte[] request) {
         boolean condition = false;
@@ -222,7 +222,7 @@ public class Proxy {
             condition = true;
         } // end if     
         return condition;
-    } //  isItLocationPacket()
+    } //  end isItJMPPacket
 
     private static boolean isItMANAPacket(byte[] request) {
         byte p1 = (byte) (Integer.parseInt("6d", 16) & 0xff);
@@ -232,10 +232,10 @@ public class Proxy {
             condition = true;
         } // end if     
         return condition;
-    } //  isItLocationPacket()
+    } //  end isItMANAPacket
     
-    // ============== Injection Packets Functions ========== //
-    
+    // ============== Injection Packets Functions - NOT WORKING ========== //
+                        
     private static byte[] writeMSG(byte[] locationPacket) throws IOException {
         byte[] newMSG = locationPacket.clone();
         byte temp = newMSG[4];
