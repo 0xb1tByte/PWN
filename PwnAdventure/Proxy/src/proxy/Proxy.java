@@ -9,15 +9,23 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 
 /**
- * @author alaa NEW TODO : 1 - Proxy ==> This class intercepts the traffic
- * between the "Game Server" & "Client", and Forward the packets between them
- * using threads 2 - Parsing Packets ===> NO IDEA YET!
+ * @author alaa 
+ TODO : 
+ 1 - Proxy ==> DONE 
+This class intercepts the traffic between the "Game Server" & "Client" , 
+and Forward the packets between them using threads
+
+ 2 - Parsing Packets ===> Not Completed Yet!
  */
 public class Proxy {
 
+    
+// ============================================== // 
+                 /// Class Variables
+// ============================================= //   
+    
     // Proxy Variables
     private ServerSocket proxySocket; // server socket
     private int portNumber; // this port should be the port that the client is using to connent to the Game Server
@@ -37,45 +45,36 @@ public class Proxy {
 
     // Creating buffers for client-to-server and server-to-client communication.
     final byte[] request = new byte[500];
-    final byte[] reply = new byte[4096];
-    
-    // Location Packet Variables 
-   private boolean locationPacket = false;
-   private boolean  isItMsgPacket = false;
-   private boolean  isItMANAPacket = false;
+    final byte[] reply = new byte[2000];
 
-    Proxy(int port) throws IOException, ClassNotFoundException {
-        // 1 - Create a proxy socket and bind it to a specific port number
-        // we set the port for the our Proxy 
-        this.portNumber = port;
-         // we set the same port for the Game Server Socket
-        this.gameServerPort = port;
-        proxySocket = new ServerSocket(portNumber);
-        // FOR DEBUGGING : 
-        //System.out.println("Inside constructor");
-        // 2 - Listen for a connection from the client 
-        listen();
-    } // end Constructor
+    // Location Packet Variables ==> Should be Moved to PacketParsing Class
+    private boolean locationPacket = false;
+    private boolean JMPPacket = false;
+    private boolean MsgPacket = false;
+    private boolean MANAPacket = false;
 
+// ============================================== // 
+                 /// MAIN FUNCTIONS
+// ============================================= //    
     private void listen() throws IOException, ClassNotFoundException {
         // FOR DEBUGGING : 
         // System.out.println("Inside Listen");
         while (true) {
             try {
                 System.out.println("[+] Waiting for Client on port: " + proxySocket.getLocalPort());
-                // 4 - Accept the connection from the client
+                // 3 - Accept the connection from the client
                 this.clientSocket = this.proxySocket.accept();
                 // getting the client IP 
                 this.clientAddress = this.clientSocket.getInetAddress().getHostAddress();
                 System.out.println("[+] New connection from " + clientAddress); // PASSED
 
-                // 5 - Read data from the client via an InputStream obtained from the client socket. ==> will be used in the Thread
+                // 4 - Read data from the client via an InputStream obtained from the client socket. ==> will be used in the Thread
                 this.fromClient = clientSocket.getInputStream();
 
-                // 6 - Send data to the client via the client socket’s OutputStream. ==> will be used in the Thread
+                // 5 - Send data to the client via the client socket’s OutputStream. ==> will be used in the Thread
                 this.toClient = clientSocket.getOutputStream();
 
-                // 7 - Making the Connection to the Game Server
+                // 6 - Making the Connection to the Game Server
                 try {
 
                     this.gameServerSocket = new Socket(this.gameServerHostName, this.gameServerPort);
@@ -93,74 +92,60 @@ public class Proxy {
                 this.fromGameServer = this.gameServerSocket.getInputStream();
                 this.toGameServer = this.gameServerSocket.getOutputStream();
 
-                
-                 // we are using seperate threads for request (Client side) and reply (Server Side)
-                
-                
-                
-                // 8 - Creating Threads to read Cleint'data and pass them to the Game Server
-               
+                // 7 - Creating Threads to read Cleint'data and pass them to the Game Server
+                // we are using seperate threads for request (Client side) and reply (Server Side)
                 new Thread() {
-
                     public void run() {
                         int bytes_read;
                         try {
                             // while the Client is sending streams , forward them to the Game Server 
                             // read() : it returns the total number of bytes read into the buffer, 
-                                        // or -1 if there is no more data because the end of the stream has been reached.
+                            // or -1 if there is no more data because the end of the stream has been reached.
                             while ((bytes_read = fromClient.read(request)) != -1) {
-                               
-                                
-                                   /*
-                                 // NOT WORKING 
-                                // Before sending the packet to the Game Server
-                                // check if the packet is Location Packet, if so, call the to change Player's Location
+
+                                // check if the packet is Location Packet
                                 locationPacket = isItLocationPacket(request);
-                                if (locationPacket == true)
-                                {
-                                    System.out.println("True");
-                                  //  System.arraycopy(source_arr, sourcePos, dest_arr, destPos, len); 
-                                  System.arraycopy(changePlayerLocation(request), 0, request, 0, request.length); 
+                                if (locationPacket == true) {
+                                    System.out.println("Location Packet has been captured!");
+                                    //  System.arraycopy(source_arr, sourcePos, dest_arr, destPos, len); 
+                                    // System.arraycopy(changePlayerLocation(request), 0, request, 0, request.length); 
                                 } // end if  
-                                */
-                                
-                                
-                                                                 // NOT WORKING 
-                                // Before sending the packet to the Game Server
-                                // check if the packet is Location Packet, if so, call the to change Player's Location
-                                isItMANAPacket = isItMANAPacket_(request);
-                                if (isItMANAPacket == true)
-                                {
-                                    System.out.println("True");
-                                  //  System.arraycopy(source_arr, sourcePos, dest_arr, destPos, len); 
-                                  System.arraycopy(changeMANA(request), 0, request, 0, request.length); 
+
+                                // check if the packet is Jump Packet                                
+                                JMPPacket = isItJMPPacket(request);
+                                if (JMPPacket == true) {
+                                    System.out.println("Jump Packet has been captured!");
+                                    //  System.arraycopy(source_arr, sourcePos, dest_arr, destPos, len); 
+                                    // System.arraycopy(changePlayerLocation(request), 0, request, 0, request.length); 
                                 } // end if  
-                                
-                                
-                                // reversing message
-                             
-                                /*
-                                   // check if the packet is Location Packet, if so, call the to change Player's Location
-                                isItMsgPacket = isItMsgPacket(request);
-                                if (isItMsgPacket == true)
-                                {
-                                    System.out.println("TRUE");
-                                  //  System.arraycopy(source_arr, sourcePos, dest_arr, destPos, len); 
-                                  System.arraycopy(writeMSG(request), 0, request, 0, request.length); 
-                                } // end if */
-                                
-                                
-                                
-                                toGameServer.write(request, 0, bytes_read);    
+
+                                // NOT TESTED YET       
+                                // check if the packet is MANA Packet
+                                MANAPacket = isItMANAPacket(request);
+                                if (MANAPacket == true) {
+                                    System.out.println("MANA Packet has been captured!");
+                                    //  System.arraycopy(source_arr, sourcePos, dest_arr, destPos, len); 
+                                    //System.arraycopy(changeMANA(request), 0, request, 0, request.length); 
+                                } // end if              
+
+                                // NOT TESTED YET     
+                                // check if the packet is Message Packet
+                                MsgPacket = isItMsgPacket(request);
+                                if (MsgPacket == true) {
+                                    System.out.println("Message Packet has been captured!");
+                                    //  System.arraycopy(source_arr, sourcePos, dest_arr, destPos, len); 
+                                    //System.arraycopy(writeMSG(request), 0, request, 0, request.length); 
+                                } // end if 
+
+                                toGameServer.write(request, 0, bytes_read);
                                 System.out.println("[+] Client is sending " + bytes_read + " Bytes to the Game Server:\n" + printHex(request));
-                             
-                              // FOR DEBUGGING : 
-                              //  System.out.println("Bytes: ");
-                              //  printByteArray(request);
-                              //  System.out.println("Binary: ");   
-                              //  printByteAsBits(request);   
-                              //  System.out.println("");
-                                
+
+                                // FOR DEBUGGING : 
+                                //  System.out.println("Bytes: ");
+                                //  printByteArray(request);
+                                //  System.out.println("Binary: ");   
+                                //  printByteAsBits(request);   
+                                //  System.out.println("");
                                 toGameServer.flush();
                             }
                         } catch (IOException e) {
@@ -171,12 +156,9 @@ public class Proxy {
                         } catch (IOException e) {
                         }
                     }
-                }.start(); 
+                }.start(); // NOTE : when program calls start() method a new Thread is created and code inside run() method is executed
 
-
-// NOTE : when program calls start() method a new Thread is created and code inside run() method is executed
-
-                // 9 - Reading the Game Server's response , then forward it to the Client 
+                // 8 - Reading the Game Server's response , then forward it to the Client 
                 int bytes_read;
                 try {
                     // while the Game Server is sending streams, forward them to the Client 
@@ -197,8 +179,6 @@ public class Proxy {
                 // if the Game Server close the connection with the Proxy, close the connection with the Client           
                 toClient.close();
             } // end try 
-            
-            
             catch (IOException e) {
                 System.err.println(e);
             } // end catch 
@@ -218,24 +198,206 @@ public class Proxy {
         } // end while  
     } // end listen 
     
-    
-     private static byte[] floatToByteArray ( float i ) throws IOException {
-     ByteArrayOutputStream bos = new ByteArrayOutputStream();
-     DataOutputStream dos = new DataOutputStream(bos);
-     dos.writeFloat(i);
-     dos.flush();
-     return bos.toByteArray();
-    }
-     
-     private static byte[] hexToByteArray ( String i ) throws IOException {
-     ByteArrayOutputStream bos = new ByteArrayOutputStream();
-     DataOutputStream dos = new DataOutputStream(bos);
-    // dos.
-    // dos.flush();
-     return bos.toByteArray();
-    }
-    
+    // ============== Identifying Packets Functions ========== //    
 
+    private static boolean isItMsgPacket(byte[] request) {
+        boolean condition = false;
+        if ((request[0] == 35) && (request[1] == 42)) {
+            condition = true;
+        } // end if     
+        return condition;
+    } //  isItLocationPacket()
+
+    private static boolean isItLocationPacket(byte[] request) {
+        boolean condition = false;
+        if ((request[0] == 109) && (request[1] == 118)) {
+            condition = true;
+        } // end if     
+        return condition;
+    } //  isItLocationPacket()
+
+    private static boolean isItJMPPacket(byte[] request) {
+        boolean condition = false;
+        if ((request[0] == 106) && (request[1] == 112)) {
+            condition = true;
+        } // end if     
+        return condition;
+    } //  isItLocationPacket()
+
+    private static boolean isItMANAPacket(byte[] request) {
+        byte p1 = (byte) (Integer.parseInt("6d", 16) & 0xff);
+        byte p2 = (byte) (Integer.parseInt("61", 16) & 0xff);
+        boolean condition = false;
+        if ((request[0] == p1) && (request[1] == p2)) {
+            condition = true;
+        } // end if     
+        return condition;
+    } //  isItLocationPacket()
+    
+    // ============== Injection Packets Functions ========== //
+    
+    private static byte[] writeMSG(byte[] locationPacket) throws IOException {
+        byte[] newMSG = locationPacket.clone();
+        byte temp = newMSG[4];
+        newMSG[4] = newMSG[5];
+        newMSG[4] = temp;
+        return newMSG;
+
+    } // writeMSG
+
+    private static byte[] changeMANA(byte[] locationPacket) {
+
+        byte[] newMANA = locationPacket.clone();
+        newMANA[2] = (byte) 35;
+        return newMANA;
+
+    } // end hangeMANA
+
+    private static byte[] changePlayerLocation(byte[] locationPacket) throws IOException {
+        //locationPacket
+        // coordinates are for position : In town , high in the sk
+        // FOR DEBUGGING : 
+        // GunShopOwner coordinates:        -37463.0,   -18050.0,   2416.0
+        // - GoldenEgg3:           24512.0,    69682.0,   2659.0
+        float X = (float) -43655.0;
+        float Y = (float) -18050.0;
+        float Z = (float) 2416.0;
+        byte[] xByte = floatToByteArray(X);
+        //   System.out.println("X = " +  X+ " in byte = ");
+        //  printByteArray(xByte);
+
+        byte[] yByte = floatToByteArray(Y);
+        // System.out.println("Y = " +  Y+ " in byte = ");
+        //  printByteArray(yByte);
+
+        byte[] zByte = floatToByteArray(Z);
+        // System.out.println("Z = " +  Z+ " in byte = ");
+        // printByteArray(zByte);
+
+        // byte [] newPostions = null;
+        // clone the same packet 
+        byte[] newPostions = locationPacket.clone();
+
+        // looping over the new array and changing the X,Y,Z coordinates 
+        for (int i = 0; i < locationPacket.length; i++) {
+            // changing X
+            // X is stored in bytes[2-5] 
+            // we copy values in reverse order because of little-indian things in network
+            if (i == 2) {
+                newPostions[i] = xByte[3];
+            } // end if
+
+            if (i == 3) {
+                newPostions[i] = xByte[2];
+            } // end if
+
+            if (i == 4) {
+                newPostions[i] = xByte[1];
+            } // end if
+
+            if (i == 5) {
+                newPostions[i] = xByte[0];
+            } // end if
+
+            // changing Y , Y is from bytes[6-9]
+            if (i == 6) {
+                newPostions[i] = yByte[3];
+            } // end if
+
+            if (i == 7) {
+                newPostions[i] = yByte[2];
+            } // end if
+
+            if (i == 8) {
+                newPostions[i] = yByte[1];
+            } // end if
+
+            if (i == 9) {
+                newPostions[i] = yByte[0];
+            } // end if 
+
+            // changing Z , Z is from bytes[10-13] 
+            if (i == 10) {
+                newPostions[i] = zByte[3];
+            } // end if
+
+            if (i == 11) {
+                newPostions[i] = zByte[2];
+            } // end if
+
+            if (i == 12) {
+                newPostions[i] = zByte[1];
+            } // end if
+
+            if (i == 13) {
+                newPostions[i] = zByte[3];
+            } // end if 
+
+            // copy the rest of packet in the same positions 
+            // newPostions [i] = locationPacket[i];
+        } // end for 
+
+        return newPostions;
+    } // end changePlayerLocation
+
+    Proxy(int port) throws IOException, ClassNotFoundException {
+        // 1 - Create a proxy socket and bind it to a specific port number
+        // we set the port for our Proxy 
+        this.portNumber = port;
+        // we set the same port for the Game Server Socket
+        this.gameServerPort = port;
+        proxySocket = new ServerSocket(portNumber);
+        // FOR DEBUGGING : 
+        //System.out.println("Inside constructor");
+        // 2 - Listen for a connection from the client 
+        listen();
+    } // end Constructor
+
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
+
+//      checkingBytesValues();
+        int portNumber = 3333; // set the port number to the default port for the Game Server (This port is for Authenticating the Player)
+        if (args.length > 0) {
+            try {
+                portNumber = Integer.parseInt(args[0]);
+                // create a proxy instance 
+                Proxy PWNProxy = new Proxy(portNumber);
+            } catch (NumberFormatException e) {
+                System.err.println("[!] Argument" + args[0] + " must be an integer.");
+                System.exit(1);
+            }
+        } // end if 
+        if (args.length == 0) {
+            System.out.println("[!] Please enter the port of the Game Server to start the Proxy");
+            System.out.println("[~] Usage: java proxy portNumber");
+        } // end if
+        // create a proxy instance    
+    } // end main
+
+ // ============================================== // 
+                /// FOR DEBUGGING 
+// ============================================= //  
+    private static void printByteAsBits(byte[] byteArray) {
+        for (int i = 0; i < byteArray.length; i++) {
+            System.out.println(Integer.toBinaryString((byteArray[i] & 0xFF) + 256).substring(1) + " ");
+        } // end for
+    }  // end printByteAsBits  
+
+    private static byte[] floatToByteArray(float i) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(bos);
+        dos.writeFloat(i);
+        dos.flush();
+        return bos.toByteArray();
+    } // end floatToByteArray
+
+    private static byte[] hexToByteArray(String i) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(bos);
+        // dos.
+        // dos.flush();
+        return bos.toByteArray();
+    } // end hexToByteArray
 
     private static String printHex(byte[] bytes) {
 
@@ -246,278 +408,54 @@ public class Proxy {
         return sb.toString();
 
     } // end printHex 
-    
-        private static void printByteArray(byte[] bytes) {      
+
+    private static void printByteArray(byte[] bytes) {
         for (int i = 0; i < bytes.length; i++) {
             System.out.println("position is : " + i);
-           System.out.println(bytes[i]+ " ");
+            System.out.println(bytes[i] + " ");
         }
     } // end printByteArray 
-    
-    /*
-     private static void checkingBytesValues()
-    {
-         // FOR DEBUGGING : 
-        String hex  = "6d762fb254c713be46c7004b5c44000020ae00000000007f0000000037633638666633336362";
-        byte [] test = hexToByteArray(hex);
+
+    private static void checkingBytesValues() throws IOException {
+        // FOR DEBUGGING : 
+        String hex = "6d762fb254c713be46c7004b5c44000020ae00000000007f0000000037633638666633336362";
+        byte[] test = hexToByteArray(hex);
         //  printing the bytes values : 
         for (int i = 0; i < test.length; i++) {
-         System.out.println("Byte at position "+ i + " is : "); 
-         System.out.println(Integer.toString((test[i] & 0xff) + 0x100, 16).substring(1));
-        }   
-     
-         // FOR DEBUGGING : 
+            System.out.println("Byte at position " + i + " is : ");
+            System.out.println(Integer.toString((test[i] & 0xff) + 0x100, 16).substring(1));
+        }
+
+        // FOR DEBUGGING : 
         // printing X & Y & Z values as integer to check values 
-        /*String x = "2fb254c7";
-        long XlongBits = Long.valueOf(x,16).longValue(); 
+        String x = "2fb254c7";
+        long XlongBits = Long.valueOf(x, 16).longValue();
         double XdoubleValue = Double.longBitsToDouble(XlongBits);
         System.out.println("X = " + XdoubleValue);
-        
+
         String y = "13be46c7";
-        long YlongBits = Long.valueOf(y,16).longValue(); 
+        long YlongBits = Long.valueOf(y, 16).longValue();
         double YdoubleValue = Double.longBitsToDouble(YlongBits);
         System.out.println("Y = " + YdoubleValue);
-        
+
         String z = "004b5c44";
-        long ZlongBits = Long.valueOf(z,16).longValue(); 
+        long ZlongBits = Long.valueOf(z, 16).longValue();
         double ZdoubleValue = Double.longBitsToDouble(ZlongBits);
         System.out.println("Z = " + ZdoubleValue);
-        
 
         //double X = -39602.8;
-         double X = -54450.2;
+        double X = -54450.2;
         double Y = -18288.0;
         double Z = 2400.28 + 10000;
-        
+
         System.out.println("X = ");
         byte[] output = new byte[4];
         long lng = Double.doubleToLongBits(X);
-        for(int i = 0; i < 4; i++) { 
-         output[i] = (byte)((lng >> ((7 - i) * 8)) & 0xff);
-         System.out.println(output[i]);
-          System.out.println(Integer.toString((output[i] & 0xff) + 0x100, 16).substring(1));
-        }  
-    } // end findLocationPacket */
-     
-         /* private static void findLocationPacket (bytes [] locationPacket)
-        {
+        for (int i = 0; i < 4; i++) {
+            output[i] = (byte) ((lng >> ((7 - i) * 8)) & 0xff);
+            System.out.println(output[i]);
+            System.out.println(Integer.toString((output[i] & 0xff) + 0x100, 16).substring(1));
+        }
+    } // end checkingBytesValues 
 
-        //  printing the bytes values : 
-        for (int i = 0; i < test.length; i++) 
-        {
-        
-        }  // end for      
-        } // end findLocationPacket */
-     
-           
-    private static boolean isItMsgPacket (byte [] request)         
-    {
-        boolean condition = false;
-        if ( (request[0] ==35) && (request[1] == 42) )
-        {
-        condition = true;
-        } // end if     
-        return condition;
-    } //  isItLocationPacket()
-    
-    
-        private static byte [] writeMSG (byte [] locationPacket) throws IOException
-    {
-         byte [] newMSG = locationPacket.clone();
-         byte temp = newMSG[4];
-         newMSG[4] = newMSG[5];
-         newMSG[4] = temp;
-         /*
-        for (int i = 0 ; i < locationPacket.length;i++ ) 
-        {
-        
-        
-        } // end for */
-         return newMSG;
-        
-    } // writeMSG
-    
-    
-        
-    private static boolean isItLocationPacket (byte [] request)         
-    {
-        boolean condition = false;
-        if ( (request[0] == 109) && (request[1] == 118) )
-        {
-        condition = true;
-        } // end if     
-        return condition;
-    } //  isItLocationPacket()
-    
-    
-        private static boolean isItMANAPacket_ (byte [] request)         
-    {
-        byte p1 = (byte) (Integer.parseInt("6d",16) & 0xff);
-        byte p2 = (byte) (Integer.parseInt("61",16) & 0xff);
-        boolean condition = false;
-        if ( (request[0] == p1) && (request[1] == p2 ) )
-        {
-        condition = true;
-        } // end if     
-        return condition;
-    } //  isItLocationPacket()
-        
-    
-    private static byte [] changeMANA (byte [] locationPacket)
-    {
-    
-     byte [] newMANA = locationPacket.clone();
-     newMANA[2] = (byte)35; 
-     return newMANA;
-     
-    } // end hangeMANA
-    
-    private static byte [] changePlayerLocation (byte [] locationPacket) throws IOException
-    {
-    //locationPacket
-        // coordinates are for position : In town , high in the sk
-        // FOR DEBUGGING : 
-        //      - GunShopOwner:        ,   ,    
-        float X = (float)-37463.0;
-        float Y = (float)-18050.0;
-        float Z = (float)2416.0;    
-        byte [] xByte = floatToByteArray(X);
-        //   System.out.println("X = " +  X+ " in byte = ");
-       //  printByteArray(xByte);
-        
-        byte [] yByte = floatToByteArray(Y);
-        // System.out.println("Y = " +  Y+ " in byte = ");
-       //  printByteArray(yByte);
-        
-        byte [] zByte = floatToByteArray(Z);
-        // System.out.println("Z = " +  Z+ " in byte = ");
-        // printByteArray(zByte);
-        
-       // byte [] newPostions = null;
-        // clone the same packet 
-        byte [] newPostions = locationPacket.clone();
-        
-        // looping over the new array and changing the X,Y,Z coordinates 
-        for (int i = 0 ; i < locationPacket.length ; i++) 
-        {
-           // changing X
-           // X is stored in bytes[2-5] 
-           // we copy values in reverse order because of little-indian things in network
-            if (i == 2)
-            {
-             newPostions[i] = xByte[3];
-            } // end if
-            
-            if (i == 3)
-            {
-              newPostions[i] = xByte[2];
-            } // end if
-            
-            if (i == 4)
-            {
-               newPostions[i] = xByte[1];
-            } // end if
-            
-            if (i == 5)
-            {
-             newPostions[i] = xByte[0];
-            } // end if
-            
-           // changing Y , Y is from bytes[6-9]
-            if (i == 6)
-            {
-             newPostions[i] = yByte[3];
-            } // end if
-            
-            if (i == 7)
-            {
-             newPostions[i] = yByte[2];
-            } // end if
-            
-            if (i == 8)
-            {
-             newPostions[i] = yByte[1];
-            } // end if
-            
-            if (i == 9)
-            {
-             newPostions[i] = yByte[0];
-            } // end if 
-            
-           // changing Z , Z is from bytes[10-13] 
-            if (i == 10)
-            {
-               newPostions[i] = zByte[3];
-            } // end if
-            
-            if (i == 11)
-            {
-             newPostions[i] = zByte[2];
-            } // end if
-            
-            if (i == 12)
-            {
-             newPostions[i] = zByte[1];      
-            } // end if
-            
-            if (i == 13)
-            {
-             newPostions[i] = zByte[3];
-            } // end if 
-            
-            // copy the rest of packet in the same positions 
-           // newPostions [i] = locationPacket[i];
-        } // end for 
-        
-        return newPostions;
-    } // end changePlayerLocation
-    
-    private static void printByteAsBits (byte [] byteArray)
-    {
-    for (int i=0;i<byteArray.length;i++)   
-    {
-        System.out.println(Integer.toBinaryString((byteArray[i] & 0xFF) + 256).substring(1) + " ");
-    } // end for
-    }  // printByteAsBits  
-    
-    
-    
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
-        
-//      checkingBytesValues();
-
-        
-       
-        int portNumber = 3333; // set the port number to the default port for the Game Server (This port is for Authenticating the Player)
-        if (args.length > 0) {
-            try {
-                portNumber = Integer.parseInt(args[0]);
-                 // create a proxy instance 
-                Proxy PWNProxy = new Proxy(portNumber);
-            } catch (NumberFormatException e) {
-                System.err.println("[!] Argument" + args[0] + " must be an integer.");
-                System.exit(1);
-            }
-        } // end if 
-        if (args.length == 0) 
-        {
-         System.out.println("[!] Please enter the port of the Game Server to start the Proxy");
-         System.out.println("[~] Usage: java proxy portNumber");
-        } // end if
-        // create a proxy instance    
-    } // end main
-    
-    
-   /* private static byte[] hexToByteArray(String s) 
-    {
-    int len = s.length();
-    byte[] data = new byte[len / 2];
-    for (int i = 0; i < len; i += 2) {
-        data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-                             + Character.digit(s.charAt(i+1), 16));
-    }  
-} return data; */
-    
-    
-    
 } // end Proxy class 
